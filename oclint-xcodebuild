@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import os
+import json
+import re
+
+CURRENT_WORKING_DIRECTORY = os.getcwd()
+XCODEBUILD_LOG_PATH = CURRENT_WORKING_DIRECTORY + "/xcodebuild.log"
+JSON_COMPILATION_DATABASE = CURRENT_WORKING_DIRECTORY + "/compile_commands.json"
+
+def handle_precompiled_header(clang_commands):
+    inclusion_re = re.search('-include .+pch', clang_commands)
+    if inclusion_re:
+        pch_include = inclusion_re.group(0)
+        pch_file = os.path.basename(pch_include)
+        for path, dirs, files in os.walk(CURRENT_WORKING_DIRECTORY):
+            if pch_file in files:
+                actual_pch_path = path + "/" + pch_file
+                return re.sub('-include .+pch', "-include " + actual_pch_path, clang_commands)
+    return clang_commands
+
+source_list = []
+if os.path.isfile(XCODEBUILD_LOG_PATH):
+    with open(XCODEBUILD_LOG_PATH) as xcodebuild_log_file:
+        while 1:
+            log_line = xcodebuild_log_file.readline()
+            if not log_line:
+                break
+            source_compilation_setting_re = re.search("^CompileC", log_line.strip())
+            if source_compilation_setting_re:
+                while 1:
+                    log_line = xcodebuild_log_file.readline()
+                    if not log_line:
+                        break
+                    clang_compilation_commands_re = re.search("\s*(.*clang .+)", log_line.strip())
+                    if clang_compilation_commands_re:
+                        raw_clang_commands = clang_compilation_commands_re.group(0)
+                        clang_command = handle_precompiled_header(raw_clang_commands)
+
+                        source_file_re = re.search("-c \"(.+?)\"", clang_command)
+                        if not source_file_re:
+                            source_file_re = re.search(" -c (.+?) -o", clang_command)
+                        if source_file_re:
+                            source_file = source_file_re.group(1)
+                            source_list += [{"directory": os.path.dirname(source_file), "command": clang_command, "file": source_file}]
+                            break
+    with open(JSON_COMPILATION_DATABASE, "w") as json_compilation_database_file:
+        json_compilation_database_file.write(json.dumps(source_list, indent=2))
+else:
+    print "Error: xcodebuild.log not found at current location."
