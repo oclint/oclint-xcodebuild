@@ -9,15 +9,24 @@ XCODEBUILD_LOG_PATH = CURRENT_WORKING_DIRECTORY + "/xcodebuild.log"
 JSON_COMPILATION_DATABASE = CURRENT_WORKING_DIRECTORY + "/compile_commands.json"
 
 def handle_precompiled_header(clang_commands):
-    inclusion_re = re.search('-include .+pch', clang_commands)
-    if inclusion_re:
-        pch_include = inclusion_re.group(0)
-        pch_file = os.path.basename(pch_include)
-        for path, dirs, files in os.walk(CURRENT_WORKING_DIRECTORY):
-            if pch_file in files:
-                actual_pch_path = path + "/" + pch_file
-                return re.sub('-include .+pch', "-include " + actual_pch_path, clang_commands)
-    return clang_commands
+    rest_commands = clang_commands
+    local_commands = ""
+    while len(rest_commands) > 0:
+        inclusion_re = re.search('-include .+?\.pch', rest_commands)
+        if inclusion_re:
+            pch_include = inclusion_re.group(0)
+            index_of_pch_include = rest_commands.index(pch_include)
+            local_commands += rest_commands[:index_of_pch_include]
+            pch_file = os.path.basename(pch_include)
+            for path, dirs, files in os.walk(CURRENT_WORKING_DIRECTORY):
+                if pch_file in files:
+                    actual_pch_path = path + "/" + pch_file
+                    local_commands += re.sub('-include .+?\.pch', "-include " + actual_pch_path, pch_include)
+            rest_commands = rest_commands[index_of_pch_include+len(pch_include):]
+        else:
+            local_commands += rest_commands
+            break
+    return local_commands
 
 source_list = []
 if os.path.isfile(XCODEBUILD_LOG_PATH):
