@@ -1,0 +1,9 @@
+oclint-xcodebuild
+-------------------------------------------------------------------------------
+
+Since OCLint recognizes a file called compile_commands.json to figure out the
+compiler options for parsing each file, oclint-xcodebuild is a helper program
+that converts xcodebuild log to compile_commands.json.
+
+Visit http://docs.oclint.org/en/dev/usage/oclint-xcodebuild.html for
+documentation about using oclint-xcodebuild.
