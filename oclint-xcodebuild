@@ -55,10 +55,14 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                 break
             source_compilation_setting_re = re.search("^CompileC", log_line.strip())
             if source_compilation_setting_re:
+                working_directory = CURRENT_WORKING_DIRECTORY
                 while 1:
                     log_line = xcodebuild_log_file.readline()
                     if not log_line:
                         break
+                    working_directory_re = re.search("^cd (.+)", log_line.strip())
+                    if working_directory_re:
+                        working_directory = working_directory_re.group(1)
                     clang_compilation_commands_re = re.search("\s*(.*(" + "|".join(SUPPORTED_COMPILERS) + ") .+)", log_line.strip())
                     if clang_compilation_commands_re:
                         raw_clang_commands = clang_compilation_commands_re.group(0)
@@ -69,7 +73,7 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                             source_file_re = re.search(" -c (.+?) -o", clang_command)
                         if source_file_re:
                             source_file = source_file_re.group(1)
-                            source_list += [{"directory": os.path.dirname(source_file), "command": clang_command, "file": source_file}]
+                            source_list += [{"directory": working_directory, "command": clang_command, "file": source_file}]
                             break
     with open(JSON_COMPILATION_DATABASE, "w") as json_compilation_database_file:
         json_compilation_database_file.write(json.dumps(source_list, indent=2))
