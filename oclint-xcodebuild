@@ -8,6 +8,24 @@ CURRENT_WORKING_DIRECTORY = os.getcwd()
 XCODEBUILD_LOG_PATH = CURRENT_WORKING_DIRECTORY + "/xcodebuild.log"
 JSON_COMPILATION_DATABASE = CURRENT_WORKING_DIRECTORY + "/compile_commands.json"
 
+SUPPORTED_COMPILERS = [
+    "clang",
+    "clang\+\+",
+    "llvm-cpp-4.2",
+    "llvm-g\+\+",
+    "llvm-g\+\+-4.2",
+    "llvm-gcc",
+    "llvm-gcc-4.2",
+    "arm-apple-darwin10-llvm-g\+\+-4.2",
+    "arm-apple-darwin10-llvm-gcc-4.2",
+    "i686-apple-darwin10-llvm-g\+\+-4.2",
+    "i686-apple-darwin10-llvm-gcc-4.2",
+    "gcc",
+    "g\+\+",
+    "c\+\+",
+    "cc"
+]
+
 def handle_precompiled_header(clang_commands):
     rest_commands = clang_commands
     local_commands = ""
@@ -41,7 +59,7 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                     log_line = xcodebuild_log_file.readline()
                     if not log_line:
                         break
-                    clang_compilation_commands_re = re.search("\s*(.*clang .+)", log_line.strip())
+                    clang_compilation_commands_re = re.search("\s*(.*(" + "|".join(SUPPORTED_COMPILERS) + ") .+)", log_line.strip())
                     if clang_compilation_commands_re:
                         raw_clang_commands = clang_compilation_commands_re.group(0)
                         clang_command = handle_precompiled_header(raw_clang_commands)
