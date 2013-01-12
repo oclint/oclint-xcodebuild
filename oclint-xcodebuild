@@ -46,7 +46,8 @@ def handle_precompiled_header(clang_commands):
             break
     return local_commands
 
-source_list = []
+source_list_in_cwd = []
+source_list_out_cwd = []
 if os.path.isfile(XCODEBUILD_LOG_PATH):
     with open(XCODEBUILD_LOG_PATH) as xcodebuild_log_file:
         while 1:
@@ -73,8 +74,13 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                             source_file_re = re.search(" -c (.+?) -o", clang_command)
                         if source_file_re:
                             source_file = source_file_re.group(1)
-                            source_list += [{"directory": working_directory, "command": clang_command, "file": source_file}]
+                            source_file_group = [{"directory": working_directory, "command": clang_command, "file": source_file}]
+                            if source_file.startswith(CURRENT_WORKING_DIRECTORY):
+                                source_list_in_cwd += source_file_group
+                            else:
+                                source_list_out_cwd += source_file_group
                             break
+    source_list = source_list_in_cwd + source_list_out_cwd
     with open(JSON_COMPILATION_DATABASE, "w") as json_compilation_database_file:
         json_compilation_database_file.write(json.dumps(source_list, indent=2))
 else:
