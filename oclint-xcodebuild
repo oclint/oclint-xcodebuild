@@ -3,10 +3,17 @@
 import os
 import json
 import re
+import sys
 
 CURRENT_WORKING_DIRECTORY = os.getcwd()
-XCODEBUILD_LOG_PATH = CURRENT_WORKING_DIRECTORY + "/xcodebuild.log"
-JSON_COMPILATION_DATABASE = CURRENT_WORKING_DIRECTORY + "/compile_commands.json"
+XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, "xcodebuild.log")
+
+if len(sys.argv) > 1:
+    XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, sys.argv[1])
+    
+print "Looking for xcodebuild.log file at:",XCODEBUILD_LOG_PATH
+
+JSON_COMPILATION_DATABASE = os.path.join(CURRENT_WORKING_DIRECTORY, "compile_commands.json")
 
 SUPPORTED_COMPILERS = [
     "clang",
@@ -84,4 +91,4 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
     with open(JSON_COMPILATION_DATABASE, "w") as json_compilation_database_file:
         json_compilation_database_file.write(json.dumps(source_list, indent=2))
 else:
-    print "Error: xcodebuild.log not found at current location."
+    print "Error: xcodebuild.log not found at",XCODEBUILD_LOG_PATH
