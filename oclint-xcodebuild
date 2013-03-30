@@ -10,7 +10,7 @@ XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, "xcodebuild.log")
 
 if len(sys.argv) > 1:
     XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, sys.argv[1])
-    
+
 print "Looking for xcodebuild.log file at:",XCODEBUILD_LOG_PATH
 
 JSON_COMPILATION_DATABASE = os.path.join(CURRENT_WORKING_DIRECTORY, "compile_commands.json")
@@ -33,34 +33,41 @@ SUPPORTED_COMPILERS = [
     "cc"
 ]
 
+pch_dictionary = {}
+source_list_in_cwd = []
+source_list_out_cwd = []
+
 def handle_precompiled_header(clang_commands):
     rest_commands = clang_commands
     local_commands = ""
     while len(rest_commands) > 0:
-        inclusion_re = re.search('-include .+?\.pch', rest_commands)
+        inclusion_re = re.search('-include (.+?\.pch)', rest_commands)
         if inclusion_re:
-            pch_include = inclusion_re.group(0)
+            pch_include = inclusion_re.group(1)
             index_of_pch_include = rest_commands.index(pch_include)
-            local_commands += rest_commands[:index_of_pch_include]
-            pch_file = os.path.basename(pch_include)
-            for path, dirs, files in os.walk(CURRENT_WORKING_DIRECTORY):
-                if pch_file in files:
-                    actual_pch_path = path + "/" + pch_file
-                    local_commands += re.sub('-include .+?\.pch', "-include " + actual_pch_path, pch_include)
+            local_commands += rest_commands[:index_of_pch_include] + pch_dictionary[pch_include]
             rest_commands = rest_commands[index_of_pch_include+len(pch_include):]
         else:
             local_commands += rest_commands
             break
     return local_commands
 
-source_list_in_cwd = []
-source_list_out_cwd = []
 if os.path.isfile(XCODEBUILD_LOG_PATH):
     with open(XCODEBUILD_LOG_PATH) as xcodebuild_log_file:
         while 1:
             log_line = xcodebuild_log_file.readline()
             if not log_line:
                 break
+            process_pch_re = re.search("^ProcessPCH (.+)\.pch\.pth (.+)\.pch", log_line.strip())
+            if process_pch_re:
+                while 1:
+                    log_line = xcodebuild_log_file.readline()
+                    if not log_line:
+                        break
+                    working_directory_re = re.search("^cd (.+)", log_line.strip())
+                    if working_directory_re:
+                        pch_dictionary[process_pch_re.group(1) + ".pch"] = working_directory_re.group(1) + "/" + process_pch_re.group(2) + ".pch"
+                        break
             source_compilation_setting_re = re.search("^CompileC", log_line.strip())
             if source_compilation_setting_re:
                 working_directory = CURRENT_WORKING_DIRECTORY
