@@ -41,7 +41,9 @@ def handle_precompiled_header(clang_commands):
     rest_commands = clang_commands
     local_commands = ""
     while len(rest_commands) > 0:
-        inclusion_re = re.search('-include (.+?\.pch)', rest_commands)
+        inclusion_re = re.search('-include "(.+?\.pch)"', rest_commands)
+        if not inclusion_re:
+            inclusion_re = re.search('-include (.+?\.pch)', rest_commands)
         if inclusion_re:
             pch_include = inclusion_re.group(1)
             index_of_pch_include = rest_commands.index(pch_include)
@@ -68,6 +70,17 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                     if working_directory_re:
                         pch_dictionary[process_pch_re.group(1) + ".pch"] = working_directory_re.group(1) + "/" + process_pch_re.group(2) + ".pch"
                         break
+            # below 11 lines of code are duplicated, serious refactoring is needed badly
+            process_pch_with_quote_re = re.search('^ProcessPCH "(.+)\.pch\.pth" "(.+)\.pch"', log_line.strip())
+            if process_pch_with_quote_re:
+                while 1:
+                    log_line = xcodebuild_log_file.readline()
+                    if not log_line:
+                        break
+                    working_directory_with_quote_re = re.search('^cd "(.+)"', log_line.strip())
+                    if working_directory_with_quote_re:
+                        pch_dictionary[process_pch_with_quote_re.group(1) + ".pch"] = working_directory_with_quote_re.group(1) + "/" + process_pch_with_quote_re.group(2) + ".pch"
+                        break
             source_compilation_setting_re = re.search("^CompileC", log_line.strip())
             if source_compilation_setting_re:
                 working_directory = CURRENT_WORKING_DIRECTORY
@@ -75,7 +88,9 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                     log_line = xcodebuild_log_file.readline()
                     if not log_line:
                         break
-                    working_directory_re = re.search("^cd (.+)", log_line.strip())
+                    working_directory_re = re.search('^cd "(.+)"', log_line.strip())
+                    if not working_directory_re:
+                        working_directory_re = re.search("^cd (.+)", log_line.strip())
                     if working_directory_re:
                         working_directory = working_directory_re.group(1)
                     clang_compilation_commands_re = re.search("\s*(.*(" + "|".join(SUPPORTED_COMPILERS) + ") .+)", log_line.strip())
@@ -83,7 +98,7 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                         raw_clang_commands = clang_compilation_commands_re.group(0)
                         clang_command = handle_precompiled_header(raw_clang_commands)
 
-                        source_file_re = re.search("-c \"(.+?)\"", clang_command)
+                        source_file_re = re.search('-c "(.+?)"', clang_command)
                         if not source_file_re:
                             source_file_re = re.search(" -c (.+?) -o", clang_command)
                         if source_file_re:
