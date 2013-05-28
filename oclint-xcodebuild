@@ -2,14 +2,23 @@
 
 import os
 import json
+import argparse
 import re
 import sys
 
 CURRENT_WORKING_DIRECTORY = os.getcwd()
 XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, "xcodebuild.log")
 
-if len(sys.argv) > 1:
+arg_parser = argparse.ArgumentParser(description='OCLint for XCode Log (xcodebuild.log)')
+arg_parser.add_argument("-e", "-exclude", dest="exclusion", help="excluded pattern")
+arg_parser.add_argument("-l", "-log_path", dest="logpath", help="log path")
+args, unknown = arg_parser.parse_known_args()
+
+if len(sys.argv) == 2:
     XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, sys.argv[1])
+
+if args.logpath:
+    XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, args.logpath)
 
 print "Looking for xcodebuild.log file at:",XCODEBUILD_LOG_PATH
 
@@ -102,12 +111,13 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
                         if not source_file_re:
                             source_file_re = re.search(" -c (.+?) -o", clang_command)
                         if source_file_re:
-                            source_file = source_file_re.group(1)
-                            source_file_group = [{"directory": working_directory, "command": clang_command, "file": source_file}]
-                            if source_file.startswith(CURRENT_WORKING_DIRECTORY):
-                                source_list_in_cwd += source_file_group
-                            else:
-                                source_list_out_cwd += source_file_group
+                            if not args.exclusion or not re.match(args.exclusion, working_directory):
+                                source_file = source_file_re.group(1)
+                                source_file_group = [{"directory": working_directory, "command": clang_command, "file": source_file}]
+                                if source_file.startswith(CURRENT_WORKING_DIRECTORY):
+                                    source_list_in_cwd += source_file_group
+                                else:
+                                    source_list_out_cwd += source_file_group
                             break
     source_list = source_list_in_cwd + source_list_out_cwd
     with open(JSON_COMPILATION_DATABASE, "w") as json_compilation_database_file:
