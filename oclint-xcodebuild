@@ -9,9 +9,9 @@ import sys
 CURRENT_WORKING_DIRECTORY = os.getcwd()
 XCODEBUILD_LOG_PATH = os.path.join(CURRENT_WORKING_DIRECTORY, "xcodebuild.log")
 
-arg_parser = argparse.ArgumentParser(description='OCLint for XCode Log (xcodebuild.log)')
-arg_parser.add_argument("-e", "-exclude", dest="exclusion", help="excluded pattern")
-arg_parser.add_argument("-l", "-log_path", dest="logpath", help="log path")
+arg_parser = argparse.ArgumentParser(description='A helper program that converts xcodebuild log to compile_commands.json')
+arg_parser.add_argument("-e", "-exclude", dest="exclusion", help="Exclusion pattern (Regular Expression)")
+arg_parser.add_argument("-l", "-log_path", dest="logpath", help="xcodebuild log path")
 args, unknown = arg_parser.parse_known_args()
 
 if len(sys.argv) == 2:
