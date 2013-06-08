@@ -37,18 +37,27 @@ JSON_COMPILATION_DATABASE = "compile_commands.json"
 _find_unsafe = re.compile('[ "\\\\]').search
 
 def clang_quote(s):
-    """Return a minimally-escaped version of the string *s* that clang-check is likely to understand."""
+    """
+    Return a minimally-escaped version of the string *s* that clang-based tools understand.
+    (See http://clang.llvm.org/docs/JSONCompilationDatabase.html)
+    ex:
+      clang_quote('aa') == r'aa'
+      clang_quote('a"a') == r'"a\"a"'
+      clang_quote('--my-option=a"a') == r'"--my-option=a\"a"'
+    """
     if not s:
         return '""'
+
     if _find_unsafe(s) is None:
         return s
 
     return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
+
 _find_quoting = re.compile('[\'"\\\\]').search
 
 def tokenize_command(c):
-    """Compute the list of shell arguments in *c* using shlex.split (the original function does not support string inputs until Python 3)."""
+    """Compute the list of shell arguments in *c* using shlex.split (note: make an explicit call to StringIO for compatibility with Python 2)."""
     if _find_quoting(c) is None:
         return map(str.strip, c.strip().split(' '))
     else:
@@ -101,8 +110,6 @@ def process_clang_command(clang_command, directory):
 
             elif tok == '-c':
                 source_file = tokens.next()
-                if source_file.endswith('.m') or source_file.endswith('.mm'):
-                    command.extend(["-include", "Foundation/Foundation.h", "-include", "UIKit/UIKit.h"])
                 command.append(tok)
                 command.append(clang_quote(source_file))
 
@@ -174,22 +181,17 @@ def convert(input_file, output_file, is_excluded=None):
                 output.write("\n]\n");
 
 def main():
-
     arg_parser = argparse.ArgumentParser(description='Converts xcodebuild logs or xctool-json-reporter logs to compile_commands.json')
     arg_parser.add_argument("-e", "-exclude", dest="exclusion", help="Directory exclusion pattern (regular expression)")
-    arg_parser.add_argument("-l", "-log_path", dest="logpath", help="[DEPRECATED] xcodebuild log path (default: .)")
     arg_parser.add_argument("-o", "-output", dest="output_file", help="Output json file (default: ./%s)" % JSON_COMPILATION_DATABASE)
-    arg_parser.add_argument(metavar="FILE", nargs='?', dest="input_file", help="Input log file (default: LOGPATH/%s)" % DEFAULT_INPUT_FILE)
+    arg_parser.add_argument(metavar="FILE", nargs='?', dest="input_file", help="Input log file (default: ./%s)" % DEFAULT_INPUT_FILE)
 
     args = arg_parser.parse_args()
 
-    if args.logpath:
-        input_file = args.logpath + "/" + DEFAULT_INPUT_FILE
-    else:
-        input_file = DEFAULT_INPUT_FILE
-
     if args.input_file:
         input_file = args.input_file
+    else:
+        input_file = DEFAULT_INPUT_FILE
 
     if args.output_file:
         output_file = args.output_file
@@ -200,9 +202,10 @@ def main():
         print "Error: %s not found." % input_file
         exit(1)
 
-    is_excluded = None
     if args.exclusion:
         is_excluded = re.compile(args.exclusion).match
+    else:
+        is_excluded = None
 
     convert(input_file, output_file, is_excluded)
 
