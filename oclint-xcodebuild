@@ -69,26 +69,28 @@ if os.path.isfile(XCODEBUILD_LOG_PATH):
             log_line = xcodebuild_log_file.readline()
             if not log_line:
                 break
-            process_pch_re = re.search("^ProcessPCH (.+)\.pch\.pth (.+)\.pch", log_line.strip())
+            process_pch_re = re.search("^ProcessPCH (.+)\.pch\.(pch|pth) (.+)\.pch", log_line.strip())
             if process_pch_re:
                 while 1:
                     log_line = xcodebuild_log_file.readline()
                     if not log_line:
                         break
+                    print log_line
                     working_directory_re = re.search("^cd (.+)", log_line.strip())
                     if working_directory_re:
-                        pch_dictionary[process_pch_re.group(1) + ".pch"] = working_directory_re.group(1) + "/" + process_pch_re.group(2) + ".pch"
+                        pch_dictionary[process_pch_re.group(1) + ".pch"] = working_directory_re.group(1) + "/" + process_pch_re.group(3) + ".pch"
                         break
             # below 11 lines of code are duplicated, serious refactoring is needed badly
-            process_pch_with_quote_re = re.search('^ProcessPCH "(.+)\.pch\.pth" "(.+)\.pch"', log_line.strip())
+            process_pch_with_quote_re = re.search('^ProcessPCH "(.+)\.pch\.(pch|pth)" "(.+)\.pch"', log_line.strip())
             if process_pch_with_quote_re:
                 while 1:
                     log_line = xcodebuild_log_file.readline()
                     if not log_line:
                         break
+                    print log_line
                     working_directory_with_quote_re = re.search('^cd "(.+)"', log_line.strip())
                     if working_directory_with_quote_re:
-                        pch_dictionary[process_pch_with_quote_re.group(1) + ".pch"] = working_directory_with_quote_re.group(1) + "/" + process_pch_with_quote_re.group(2) + ".pch"
+                        pch_dictionary[process_pch_with_quote_re.group(1) + ".pch"] = working_directory_with_quote_re.group(1) + "/" + process_pch_with_quote_re.group(3) + ".pch"
                         break
             source_compilation_setting_re = re.search("^CompileC", log_line.strip())
             if source_compilation_setting_re:
