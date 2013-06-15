@@ -78,15 +78,17 @@ def register_source_for_pth_file(clang_command, directory):
                 src_file = file
             elif tok == '-o':
                 file = tokens.next()
-                if file.endswith('.pth'):
+                if file.endswith('.pch.pth') or file.endswith('.pch.pch'):
                     pth_file = file
     except StopIteration:
         if src_file and pth_file:
             _pch_dictionary[pth_file] = src_file
 
 def get_source_for_pth_file(file):
-  return _pch_dictionary.get(file)
-
+    src_file = _pch_dictionary.get(file + '.pth')
+    if src_file is not None:
+        return src_file
+    return _pch_dictionary.get(file + '.pch')
 
 def process_clang_command(clang_command, directory):
     tokens = iter(tokenize_command(clang_command))
@@ -99,7 +101,7 @@ def process_clang_command(clang_command, directory):
             if tok == '-include':
                 include_file = tokens.next()
                 if not os.path.isfile(include_file):
-                    src_file = get_source_for_pth_file(include_file + '.pth')
+                    src_file = get_source_for_pth_file(include_file)
                     if src_file is not None:
                         include_file = src_file
                     else:
