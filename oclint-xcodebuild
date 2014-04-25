@@ -78,7 +78,7 @@ def register_source_for_pth_file(clang_command, directory):
                 src_file = file
             elif tok == '-o':
                 file = tokens.next()
-                if file.endswith('.pch.pth') or file.endswith('.pch.pch'):
+                if file.endswith('.pch.pth') or file.endswith('.pch.pch') or file.endswith('.h.pch'):
                     pth_file = file
     except StopIteration:
         if src_file and pth_file:
