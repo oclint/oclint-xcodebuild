@@ -1,6 +1,21 @@
 oclint-xcodebuild
 -------------------------------------------------------------------------------
 
+!!!
+This project is no longer under maintenance by OCLint team!
+Please consider using xcpretty (https://github.com/supermarin/xcpretty).
+
+Basically, if your command looks like this
+
+xcodebuild
+oclint-xcodebuild
+
+Then replace it with
+
+xcodebuild | xcpretty -r json-compilation-database
+
+-------------------------------------------------------------------------------
+
 Since OCLint recognizes a file called compile_commands.json to figure out the
 compiler options for parsing each file, oclint-xcodebuild is a helper program
 that converts xcodebuild log to compile_commands.json.

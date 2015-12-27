@@ -213,4 +213,6 @@ def main():
 
 
 if __name__ == '__main__':
+    print "This binary is no longer under maintenance by OCLint team."
+    print "Please consider using xcpretty (https://github.com/supermarin/xcpretty) instead!"
     main()
